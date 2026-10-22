@@ -1,0 +1,14 @@
+#!name = 班级小管家去广告·试用
+#!desc = 根据班级小管家 iOS 3.11.7 抓包制作，拦截本次发现的广告配置及广告供应接口。仅含域名规则，无需 MITM。广告平台域名为共享服务，也可能减少其他 App 使用这些平台展示的广告。尚未实机验证，不能保证覆盖全部广告。
+#!author = Codex
+#!date = 2026-10-22
+
+[Rule]
+# 本次实际请求：广告配置 /infoConfig/926475、设备设置和检查。
+DOMAIN,ad.baihemob.com,REJECT
+# 本次实际请求：广告竞价 /rtb。
+DOMAIN,fg.xiawan8.com,REJECT
+# 上述配置返回的广告供应地址。
+DOMAIN,ad.shunchangzhixing.com,REJECT
+DOMAIN,inner.baihemob.com,REJECT
+
