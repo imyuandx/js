@@ -1,0 +1,47 @@
+#!name = 百度地图开屏拦截·试用版
+#!desc = v0.2.0。根据百度地图 22.1.0 的实际抓包制作：尝试清空已确认开屏接口的广告列表，并拦截本次京东广告视频。真机去广告效果待验证。需开启复写和 MitM，并信任本机 Loon 证书。
+#!author = ChatGPT
+#!loon_version = 3.5.1(978)
+#!date = 2026-10-22
+
+# 依据：用户提供的百度地图 App Store 22.1.0 启动抓包，共 216 条请求。
+# 已确认 ecom.map.baidu.com/ad-ops/afd/entry 返回 result.ad_info 数组，
+# 样本含 12 项广告配置，以及冷启动、热启动和展示时长设置。
+# 视频素材已从抓包中提取并确认是京东双 11 广告。
+# 本文件不含账号、Cookie、令牌、坐标或原始抓包内容。
+# 使用 Loon 内置 JSON/JQ 复写，无远程 JavaScript 或其他依赖文件。
+
+# 范围与限制：
+# 1. 仅在目标接口返回 HTTP 200、code=0 且 result.ad_info 为数组时清空该数组。
+#    保留 policy、req_id 等其他字段；错误响应及不同 JSON 结构保持原值。
+# 2. 视频规则只匹配本次确认过的一个素材地址；不覆盖未来更换的所有素材。
+# 3. 原 v0.1.0 的历史 tam-ogel 目录规则在本次抓包中未命中，本版撤下。
+# 4. 不封锁整个百度域名，不拦截 newclient.map.baidu.com 的混合配置接口。
+#    qt=ads 的响应包含出行入口等配置，不能仅凭参数名判定可整体删除。
+# 5. 首页卡片、搜索推广、打车页面、账户页推广未完成适配。
+# 6. 已缓存广告、SDK 其他广告来源、开屏倒计时及占位画面可能仍出现。
+# 7. 已进行 HAR URL 匹配及 JQ 离线验证；尚未在 iPhone 的 Loon 中验证导入及效果。
+
+# 使用：
+# 将本文件作为插件导入或托管为在线插件；勿替换整个 Loon 主配置。
+# 启用复写和 MitM，使用本机已安装并信任的 Loon 证书。
+# 抓包结束后关闭“开启抓包”，再完全退出百度地图并重新打开验证。
+# 旧试用插件如单独存在，请停用，避免两份同时生效。
+# 若百度地图联网或图片异常，停用本插件即可撤销本插件的修改。
+# 无需为此卸载地图；卸载可能导致离线地图等本地数据丢失。
+
+# 在线订阅：
+# 本文件尚未托管，需要固定、无需登录、直接返回纯文本的 HTTPS 地址。
+# 托管时只上传本插件，不上传 HAR。对话附件和 GitHub 文件展示页不是订阅直链。
+# 在同一地址更新本文件后，Loon 刷新插件才会取得更新。
+# Loon 官方语法参考：https://nsloon.app/docs/Rewrite/rewrite_v2/
+
+[Rewrite]
+# 开屏广告列表：结构符合预期时，仅清空广告数组。
+response if ${url} ~= /^https:\/\/ecom\.map\.baidu\.com\/ad-ops\/afd\/entry(?:\?[^#]*)?$/ && ${response.status} == 200 then response.json.jq("if type != \"object\" then . elif .code != 0 then . elif (.result | type) != \"object\" then . elif (.result.ad_info | type) != \"array\" then . else .result.ad_info = [] end")
+
+# 本次已确认的京东广告视频：返回空响应。
+request if ${url} ~= /^https:\/\/dss0\.bdstatic\.com\/-0U0bnSm1A5BphGlnYG\/cae-legoup-video-target\/8f648130-d16e-4935-b092-0bad439fa735_1242_2208\.mp4(?:\?[^#]*)?$/ then reject(200)
+
+[Mitm]
+hostname = ecom.map.baidu.com,dss0.bdstatic.com
